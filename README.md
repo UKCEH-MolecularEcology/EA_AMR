@@ -1,4 +1,4 @@
-# README: AMR and Coverage Snakemake Workflows
+# EA RSN: AMR and Coverage Snakemake Workflows
 
 **Author:** Susheel Bhanu BUSI  
 **Affiliation:** Molecular Ecology Group, UK Centre for Ecology & Hydrology (UKCEH)  
