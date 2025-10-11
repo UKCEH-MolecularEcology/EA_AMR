@@ -13,7 +13,7 @@ The workflows automate the steps required to annotate assemblies with the CARD-R
 
 ---
 
-## Workflow 1: AMR (`workflow/rules/amr.smk`)
+## Workflow 1: AMR (`workflow/rules/sample_amr.smk`)
 
 **Purpose:**  
 To identify and annotate antimicrobial resistance genes (ARGs) using CARD-RGI, estimate marker gene presence using fetchMGs, and merge coverage results.
