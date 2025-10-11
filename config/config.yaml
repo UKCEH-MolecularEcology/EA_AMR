@@ -1,0 +1,211 @@
+############################################################
+# STEPS
+
+# Steps to be done
+# steps: "taxonomy"
+# steps: ["preprocessing", "taxonomy", "assembly", "contig_taxonomy", "kaiju", "annotation", "coverage", "seed", "cluster", "amr", "binning", "antismash"] #TODO: "function", "eukaryotes", "coassembly"
+steps: ["sylph", "sample_amr"] #antismash"] # TODO - "traits" # , "coverage"]
+
+############################################################
+# INPUT
+# Directory where the workflow exists
+work_dir: "/prj/DECODE/EA_AMR"
+
+# Directory where the data files are
+data_dir: "/prj/DECODE/EA_metag_post_analysis/data" # USER_INPUT
+
+# Directory for the results
+results_dir: "/prj/DECODE/EA_AMR/RGI_results" #"/hdd0/raid3/scratch/MEGshared/ea_biofilm/results" # USER_INPUT
+
+# Directory where the conda environments are
+env_dir: "/ssd0/susbus/socd/metag_analyses/envs"
+
+# Directory with scripts
+src_dir: "/ssd0/susbus/socd/metag_analyses/scripts"
+
+# Samples (if a relative path, relative to this repo)
+samples: "config/450_samples.tsv" # USER_INPUT
+
+############################################################
+# TOOLS 
+# PREPROCESSING
+trim_galore:
+  threads: 16
+
+quast:
+  threads: 8
+
+# FILTERING 
+filter:
+  fasta: "/hdd0/susbus/databases/hg38/GRCh38_latest_genomic.fna" # Downloaded on 2023-11-16 from https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens/annotation/GRCh38_latest/refseq_identifiers/GRCh38_latest_genomic.fna.gz
+
+# QUALITY
+fastqc:
+  threads: 4
+
+# CLASSIFICATION
+kraken2:
+  db: "/hdd0/susbus/databases/kraken2/pluspfp/"
+  confidence: 0.2
+  contig_confidence: 0.2
+  threads: 12
+  read: 150
+  level: "S" # https://github.com/jenniferlu717/Bracken/issues/117
+  contig_level: "S" # set to phylum since many samples were unclassified at the Species, Genus, Family and Order levels
+
+# KAIJU
+kaiju:
+  threads: 12
+  level: "species"
+  fmi: "/hdd0/susbus/databases/kaiju/kaiju_db_nr_euk.fmi"
+  nodes: "/hdd0/susbus/databases/kaiju/nodes.dmp"
+  names: "/hdd0/susbus/databases/kaiju/names.dmp"
+
+# Struo2 database from the Ruth Ley lab
+struo2_kraken2:
+  db: "/hdd0/susbus/databases/kraken2/"
+  threads: 12
+
+# Bracken
+# Bracken installed based on information here: https://github.com/jenniferlu717/Bracken
+bracken:
+  bin: "/hdd0/susbus/tools/Bracken/bracken"
+  combine: "/hdd0/susbus/tools/Bracken/analysis_scripts/combine_bracken_outputs.py"
+
+# SINGLEM
+# https://wwood.github.io/singlem/Installation
+singlem:
+  threads: 36
+  db: "S3.2.1.GTDB_r214.metapackage_20231006.smpkg.zb"
+
+# MEGAHIT
+# https://github.com/voutcn/megahit
+megahit:
+  threads: 68
+  coassembly_threads: 70
+
+# DE-DUPLICATION
+clumpify:
+  threads: 64
+  dupedist: 12000
+  groups: 50
+  memory: "1600g"
+
+# ANNOTATION
+prodigal:
+  threads: 12
+
+# Eukaryotes
+eukulele:
+  threads: 64
+  db: "phylodb"
+  aligner: "diamond"  # options: "blast" or "diamond"
+  scratch: "/hdd0/susbus/socd/results/eukulele_scratch"
+  ref_dir: "/hdd0/susbus/databases"
+
+# MAPPING
+bwa:
+  threads: 16
+  map_threads: 24
+
+# http://www.htslib.org/doc/samtools.html
+samtools:
+  sort:
+    chunk_size: "4G"
+    chunk_size_bigmem: "16G"  
+
+# MagicLamp
+# https://github.com/Arkadiy-Garber/MagicLamp
+magiclamp:
+  threads: 36
+
+# EGGNOG
+# https://github.com/eggnogdb/eggnog-mapper
+eggnog:
+  db: "/hdd0/susbus/databases/eggnog" ###USER INPUT REQUIRED###
+  threads: 16
+  final_threads: 24
+  itype: "proteins"  # chose 'metagenome' if prediction is used
+  genepred: "prodigal"
+  split:
+    length: 2000000
+    suffix: 3
+
+# SEED
+# https://github.com/transcript/samsa2
+seed:
+  db: "/raid1/scratch/MEGshared/MG_packages/samsa2/full_databases"
+  dmnd_db: "/raid1/scratch/MEGshared/MG_packages/samsa2/full_databases/subsys_db.dmnd"
+  fa_db: "/raid1/scratch/MEGshared/MG_packages/samsa2/full_databases/subsys_db.fa"
+  threads: 24
+
+# CLUSTERING
+mmseqs2:
+  threads: 72
+  cov: 0.7
+  min_id: 0.5 # use 0.3 for proteins and 0.5 for DNA
+  cov_mode: 1 # use 0 for proteins
+
+# AMR
+# https://github.com/arpcard/rgi
+rgi:
+  threads: 64
+  db_url: "https://card.mcmaster.ca/latest/data"
+
+# BINNING
+filter_length:
+  threads: 4
+    
+mdmcleaner:
+  threads: 48
+
+mapping:
+  threads: 36
+
+metabat2:
+  threads: 56
+
+concoct:
+  threads: 64
+
+metabinner:
+  length: 2000
+  threads: 64
+
+semibin:
+  threads: 64
+  env: "soil" # [wastewater, human_gut, dog_gut, ocean, human_oral, mouse_gut, built_enviroment, global] - see additional options here: https://semibin.readthedocs.io/en/latest/usage/
+    
+dasTool:
+  bin: "/hdd0/susbus/tools/DAS_Tool/DAS_Tool" # obtained from https://github.com/cmks/DAS_Tool/archive/1.1.0.zip
+  threads: 64
+
+checkm:
+  threads: 64
+  extension: "fa"
+  git_path: "https://github.com/chklovski/CheckM2"
+
+drep:
+  threads: 64
+  comp: 70
+  cont: 16
+
+gtdbtk:
+  threads: 64
+  path: "/hdd0/susbus/databases/gtdbtk/release214"
+
+antismash:
+  threads: 16
+
+# SYLPH
+# https://github.com/bluenote-1577/sylph
+sylph:
+  threads: 48
+  gtdb_url: "http://faust.compbio.cs.cmu.edu/sylph-stuff/gtdb-r220-c200-dbv1.syldb"
+  imgvr_url: "http://faust.compbio.cs.cmu.edu/sylph-stuff/imgvr_c200_v0.3.0.syldb"
+  fundb_url: "http://faust.compbio.cs.cmu.edu/sylph-stuff/fungi-refseq-2024-07-25-c200-v0.3.syldb"
+
+# fetchMG
+# https://github.com/motu-tool/FetchMGs
+fetchMG:
+  threads: 24

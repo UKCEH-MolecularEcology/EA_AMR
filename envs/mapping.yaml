@@ -1,0 +1,8 @@
+channels:
+ - conda-forge
+ - bioconda
+ - defaults
+dependencies:
+ - racon=1.5.0
+ - samtools=1.18
+ - seqkit=2.6.1
