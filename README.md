@@ -1,6 +1,7 @@
 # EA RSN: AMR and Coverage Snakemake Workflows
 
 **Authors:** Susheel Bhanu Busi and Amy Thorpe
+
 **Affiliation:** Molecular Ecology Group, UK Centre for Ecology & Hydrology (UKCEH)  
 **Date:** 2024-10-16  
 **Last Modified:** 2025-10-11  
