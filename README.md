@@ -40,7 +40,11 @@ To calculate contig- and gene-level coverage from metagenomic assemblies.
 
 **Run command:**
 ```bash
-snakemake -s workflow/rules/coverage.smk --use-conda --cores 4 -rp
+# dry-run
+snakemake -s workflow/Snakefile --cores 72 --jobs 6 --use-conda --conda-frontend conda -rpn
+
+# full run
+snakemake -s workflow/Snakefile --cores 72 --jobs 6 --use-conda --conda-frontend conda -rp 
 ```
 
 ### Key Rules
