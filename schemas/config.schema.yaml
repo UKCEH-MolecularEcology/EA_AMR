@@ -15,5 +15,5 @@ properties:
     type: string
 
 required:
-  - results_dir
+  #  - results_dir
   - samples

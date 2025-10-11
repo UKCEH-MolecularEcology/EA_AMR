@@ -185,29 +185,9 @@ rule merge_rgi_coverage:
         print("Merge complete.")
 
 # Getting single copy genes using fetchMGs: marker gene extraction from protein FASTA
-# Annotating the genes in assemblies
-rule arg_prodigal:
-    input:
-        FASTA=os.path.join(RESULTS_DIR, "assembly/{sid}/{sid}.fasta")
-    output:
-        FAA=os.path.join(RESULTS_DIR, "proteins/{sid}/{sid}.faa"),
-        GFF=os.path.join(RESULTS_DIR, "proteins/{sid}/{sid}.gff")
-    conda:
-        os.path.join(ENV_DIR, "prodigal.yaml")
-    threads:
-        config['prodigal']['threads']
-    log:
-        os.path.join(RESULTS_DIR, "logs/proteins.{sid}.log")
-    wildcard_constraints:
-        sid="|".join(SAMPLES.index)
-    message:
-        "Running PRODIGAL on {wildcards.sid}"
-    shell:
-        "(date && prodigal -a {output.FAA} -p meta -i {input.FASTA} -f gff -o {output.GFF} && date) &> >(tee {log})"
-
 rule fetchMG:
     input:
-        faa=rules.arg_prodigal.output.FAA
+        faa=os.path.join(RESULTS_DIR, "prodigal/{sid}/{sid}.faa")
     output:
         outdir=os.path.join(RESULTS_DIR, "fetchMG/{sid}/{sid}.faa.fetchMGs.scores")
     log:
