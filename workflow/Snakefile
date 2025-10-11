@@ -14,7 +14,8 @@ import pandas as pd
 ##############################
 # CONFIG
 # can be overwritten by using --configfile <path to config> when calling snakemake
-# configfile: "config/config.yaml"
+configfile: 
+    "config/config.yaml"
 
 include:
     "rules/init.smk"
