@@ -3,8 +3,8 @@
 
 # Steps to be done
 # steps: "taxonomy"
-# steps: ["preprocessing", "taxonomy", "assembly", "contig_taxonomy", "kaiju", "annotation", "coverage", "seed", "cluster", "amr", "binning", "antismash"] #TODO: "function", "eukaryotes", "coassembly"
-steps: ["sylph", "sample_amr"] #antismash"] # TODO - "traits" # , "coverage"]
+# steps: ["preprocessing", "taxonomy", "assembly", "contig_taxonomy", "annotation", "coverage"] #TODO: "function"
+steps: ["sylph", "sample_amr"] 
 
 ############################################################
 # INPUT
