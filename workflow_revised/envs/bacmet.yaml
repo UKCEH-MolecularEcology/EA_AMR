@@ -1,0 +1,9 @@
+name: bacmet
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pandas
+  - diamond>=2.0.0

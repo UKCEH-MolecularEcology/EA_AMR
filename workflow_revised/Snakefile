@@ -1,0 +1,132 @@
+# Pipeline for assembly, taxonomy, AMR and reviewer-revision analyses
+# Example call: snakemake -s workflow_revised/Snakefile --configfile config/config.yaml
+#               --use-conda --conda-prefix ${CONDA_PREFIX}/pipeline --cores 1 -rpn
+
+##################################################
+# MODULES
+
+import os
+import re
+import glob
+import pandas as pd
+
+##################################################
+# CONFIG
+
+configfile: "config/config.yaml"
+include: "rules/init.smk"
+
+##################################################
+# TARGETS
+
+TARGETS = []
+
+##################################################
+# STEPS
+
+## ORIGINAL STEPS ##
+
+if "preprocessing" in STEPS:
+    include: "rules/preprocessing.smk"
+    TARGETS += ["status/preprocessing.done"]
+
+if "taxonomy" in STEPS:
+    include: "rules/taxonomy.smk"
+    include: "rules/singlem.smk"
+    TARGETS += ["status/taxonomy.done", "status/singlem.done"]
+
+if "assembly" in STEPS:
+    include: "rules/assembly.smk"
+    TARGETS += ["status/assembly.done"]
+
+if "contig_taxonomy" in STEPS:
+    include: "rules/contig_taxonomy.smk"
+    TARGETS += ["status/contig_taxonomy.done"]
+
+if "annotation" in STEPS:
+    include: "rules/annotation.smk"
+    TARGETS += ["status/annotation.done"]
+
+if "sample_amr" in STEPS:
+    include: "rules/sample_amr.smk"
+    TARGETS += ["status/sample_amr.done"]
+
+if "coverage" in STEPS:
+    include: "rules/coverage.smk"
+    TARGETS += ["status/coverage.done"]
+
+if "sylph" in STEPS:
+    include: "rules/sylph.smk"
+    TARGETS += ["status/sylph.done"]
+
+# ── Reviewer revision additions (Nature Communications) ─────────────────────
+# Enable each step by adding its name to config["steps"] in config/config.yaml.
+# These steps were added to address specific reviewer comments.
+
+# Reviewer 2 #5: remove chloroplast/mitochondria before contig taxonomy
+if "organellar_filter" in STEPS:
+    include: "rules/organellar_filter.smk"
+    TARGETS += ["status/organellar_filter.done"]
+
+# Reviewer 2 #4: sensitivity analysis at 2kb and 10kb contig cutoffs
+if "contig_size_filter" in STEPS:
+    include: "rules/contig_size_filter.smk"
+    TARGETS += ["status/contig_size_filter.done"]
+
+# Bracken on existing read-level Kraken2 reports (confidence=0.2, from DATA_DIR)
+if "bracken_reads" in STEPS:
+    include: "rules/bracken_reads.smk"
+    TARGETS += ["status/bracken_reads.done"]
+
+# High-confidence Kraken2 reruns (c=0.5, c=0.7) — requires reads at DATA_DIR/reads/
+# Rules defined in bracken_reads.smk; only add targets when reads are available.
+if "bracken_highconf" in STEPS:
+    if "bracken_reads" not in STEPS:
+        include: "rules/bracken_reads.smk"
+    TARGETS += expand(
+        "status/bracken_highconf_{conf}.done" if False else
+        os.path.join(config["results_dir"], "bracken_c{conf}/combined_bracken_c{conf}.txt"),
+        conf=config.get("kraken2", {}).get("highconf_levels", ["05", "07"])
+    )
+
+# Reviewer 2 #4: validate Kraken2 (c=0.2, 0.5, 0.7) vs SingleM vs Sylph taxonomy
+if "taxonomy_validation" in STEPS:
+    include: "rules/taxonomy_validation.smk"
+    TARGETS += ["status/taxonomy_validation.done"]
+
+# Reviewer 1 #3 + Reviewer 2 #3: MAG generation, QC, dereplication, taxonomy
+if "binning" in STEPS:
+    include: "rules/binning.smk"
+    TARGETS += ["status/binning.done"]
+
+# Reviewer 1 #3 + Reviewer 2 #3: CARD-RGI on dereplicated MAGs
+if "bin_amr" in STEPS:
+    include: "rules/bin_amr.smk"
+    TARGETS += ["status/bin_amr.done"]
+
+# Reviewer 1 #6: ISEScan MGEs + BacMet2 metal resistance + co-occurrence
+if "mge_metal" in STEPS:
+    include: "rules/mge_metal.smk"
+    TARGETS += ["status/mge_metal.done"]
+
+# geNomad: classify contigs as chromosome/plasmid/virus — feeds mge_metal and contig_summary
+if "genomad" in STEPS:
+    include: "rules/genomad.smk"
+    TARGETS += ["status/genomad.done"]
+
+# Integrated contig master table + ARG–metal co-selection analysis
+if "contig_summary" in STEPS:
+    include: "rules/contig_summary.smk"
+    TARGETS += ["status/contig_summary.done"]
+
+##################################################
+# SAFETY CHECK
+
+if len(TARGETS) == 0:
+    raise Exception('You are not serious. Nothing to be done? Really?')
+
+##################################################
+# RULES
+
+rule all:
+    input: TARGETS

@@ -103,6 +103,58 @@ if "sylph" in STEPS:
         "status/sylph.done"
     ]
 
+# ── Reviewer revision additions ─────────────────────────────────────────────────
+# The following steps were added in response to Nature Communications reviewer comments.
+# Enable by adding the step name to config["steps"] in config/config.yaml.
+
+# Organellar filtering
+if "organellar_filter" in STEPS:
+    include:
+        "rules/organellar_filter.smk"
+    TARGETS += [
+        "status/organellar_filter.done"
+    ]
+
+# Contig size filtering
+if "contig_size_filter" in STEPS:
+    include:
+        "rules/contig_size_filter.smk"
+    TARGETS += [
+        "status/contig_size_filter.done"
+    ]
+
+# Taxonomy validation (Kraken2 vs SingleM vs Sylph)
+if "taxonomy_validation" in STEPS:
+    include:
+        "rules/taxonomy_validation.smk"
+    TARGETS += [
+        "status/taxonomy_validation.done"
+    ]
+
+# MAG binning + quality + taxonomy
+if "binning" in STEPS:
+    include:
+        "rules/binning.smk"
+    TARGETS += [
+        "status/binning.done"
+    ]
+
+# ARG analysis on MAGs
+if "bin_amr" in STEPS:
+    include:
+        "rules/bin_amr.smk"
+    TARGETS += [
+        "status/bin_amr.done"
+    ]
+
+# MGE + metal resistance co-occurrence
+if "mge_metal" in STEPS:
+    include:
+        "rules/mge_metal.smk"
+    TARGETS += [
+        "status/mge_metal.done"
+    ]
+
 
 # No targets
 if len(TARGETS) == 0:
