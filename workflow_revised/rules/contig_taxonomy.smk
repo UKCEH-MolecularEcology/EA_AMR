@@ -32,7 +32,7 @@ localrules: contig_combine_bracken, contig_combine_mpa, contig_combine_bracken_2
 # Taxonomic classification using KRAKEN2
 rule contig_kraken2:
     input:
-        os.path.join(DATA_DIR, "assembly/{sid}.fasta"),
+        os.path.join(RESULTS_DIR, "assembly_filtered/{sid}/{sid}_noOrganellar.fasta"),
     output:
         report=os.path.join(RESULTS_DIR, "kraken2/contig/{sid}_kraken.report"),
         summary=os.path.join(RESULTS_DIR, "kraken2/contig/{sid}_kraken.out")

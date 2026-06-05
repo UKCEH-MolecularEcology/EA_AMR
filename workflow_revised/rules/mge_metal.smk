@@ -177,6 +177,8 @@ rule isescan_mge:
         "MGE: ISEScan for {wildcards.sid}"
     shell:
         "(date && "
+        "mkdir -p {output.outdir} && "
+        "cd {output.outdir} && "
         "isescan.py --seqfile {input.fasta} --output {output.outdir} --nthread {threads} && "
         "date) &> >(tee {log})"
 
