@@ -185,3 +185,4 @@ assembly_*.fasta.list
 
 # Paper analysis - exclude manuscript doc, keep reviewer notes
 paper_analysis/*.docx
+paper_analysis/
