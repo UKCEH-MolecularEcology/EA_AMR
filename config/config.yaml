@@ -4,7 +4,7 @@
 # Steps to be done
 # steps: "taxonomy"
 # steps: ["preprocessing", "taxonomy", "assembly", "contig_taxonomy", "annotation", "coverage"] #TODO: "function"
-steps: ["preprocessing", "annotation", "coverage", "assembly", "sylph", "sample_amr"] 
+steps: ["sample_amr", "organellar_filter", "contig_size_filter", "contig_taxonomy", "bracken_reads", "bracken_highconf", "taxonomy_validation", "genomad", "mge_metal", "contig_summary"]
 
 ############################################################
 # INPUT
@@ -18,7 +18,7 @@ data_dir: "/prj/DECODE/EA_metag_post_analysis/data" # USER_INPUT
 results_dir: "/prj/DECODE/EA_AMR/RGI_results" #"/hdd0/raid3/scratch/MEGshared/ea_biofilm/results" # USER_INPUT
 
 # Directory where the conda environments are
-env_dir: "/prj/DECODE/EA_AMR/envs"
+env_dir: "/prj/DECODE/EA_AMR/workflow_revised/envs"
 
 # Directory with scripts
 src_dir: "/ssd0/susbus/socd/metag_analyses/scripts"
@@ -47,11 +47,12 @@ fastqc:
 kraken2:
   db: "/hdd0/susbus/databases/kraken2/pluspfp/"
   confidence: 0.2
-  contig_confidence: 0.2
+  contig_confidence: 0.3
+  highconf_levels: ["05", "07"]   # string keys used in output paths (05=0.5, 07=0.7)
   threads: 12
   read: 150
   level: "S" # https://github.com/jenniferlu717/Bracken/issues/117
-  contig_level: "S" # set to phylum since many samples were unclassified at the Species, Genus, Family and Order levels
+  contig_level: "F" # Family level — species too sparse for contig-based Bracken
 
 # KAIJU
 kaiju:
@@ -209,3 +210,29 @@ sylph:
 # https://github.com/motu-tool/FetchMGs
 fetchMG:
   threads: 24
+
+# ORGANELLAR FILTERING
+organellar:
+  plastid_url: "https://ftp.ncbi.nlm.nih.gov/refseq/release/plastid/plastid.1.1.genomic.fna.gz"
+  mitochondrion_url: "https://ftp.ncbi.nlm.nih.gov/refseq/release/mitochondrion/mitochondrion.1.1.genomic.fna.gz"
+  threads: 16
+  min_k: 31
+
+# CONTIG SIZE FILTERING
+seqkit:
+  threads: 4
+  min_length_amr: 2000
+  min_length_taxonomy: 10000
+
+# GENOMAD — reuse existing database from ViWrap
+genomad:
+  threads: 16
+  min_score: 0.7
+  db_path: "/hdd0/susbus/databases/ViWrap_db/genomad_db"
+
+# BACMET2
+bacmet:
+  db_url: "http://bacmet.biomedicine.gu.se/download/BacMet2_EXP_database.fasta"
+  db_dir: "/hdd0/susbus/databases/bacmet"
+  pident: 80
+  qcov: 80
