@@ -34,7 +34,7 @@ rule contig_size_filter:
 # Filter contigs >= 2 kbp (for ARG / AMR analysis)
 rule filter_contigs_2kb:
     input:
-        os.path.join(DATA_DIR, "assembly/{sid}.fasta")
+        os.path.join(RESULTS_DIR, "assembly_filtered/{sid}/{sid}_noOrganellar.fasta")
     output:
         fasta=os.path.join(RESULTS_DIR, "assembly_filtered/{sid}/{sid}_min2kb.fasta"),
         stats=os.path.join(RESULTS_DIR, "assembly_filtered/{sid}/{sid}_min2kb.stats")
@@ -62,7 +62,7 @@ rule filter_contigs_2kb:
 # Filter contigs >= 10 kbp (for contig-level taxonomic assignment)
 rule filter_contigs_10kb:
     input:
-        os.path.join(DATA_DIR, "assembly/{sid}.fasta")
+        os.path.join(RESULTS_DIR, "assembly_filtered/{sid}/{sid}_noOrganellar.fasta")
     output:
         fasta=os.path.join(RESULTS_DIR, "assembly_filtered/{sid}/{sid}_min10kb.fasta"),
         stats=os.path.join(RESULTS_DIR, "assembly_filtered/{sid}/{sid}_min10kb.stats")
