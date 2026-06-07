@@ -120,7 +120,8 @@ rule run_singlem_contigs:
         "SingleM (contigs): {wildcards.sid}"
     shell:
         "(date && export SINGLEM_METAPACKAGE_PATH={params.db}/{config[singlem][db]} && "
-        "singlem pipe -f {input.fasta} -p {output.profile} --otu-table {output.table} --threads {threads} && "
+        "singlem pipe -f {input.fasta} -p {output.profile} --otu-table {output.table} "
+        "--output-extras --threads {threads} && "
         "date) &> >(tee {log})"
 
 
