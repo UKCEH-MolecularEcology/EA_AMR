@@ -168,7 +168,7 @@ rule isescan_mge:
     priority: -1
     log:
         os.path.join(RESULTS_DIR, "logs/isescan.{sid}.log")
-    threads: 8
+    threads: 32
     conda:
         os.path.join(ENV_DIR, "isescan.yaml")
     wildcard_constraints:
