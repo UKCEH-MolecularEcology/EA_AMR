@@ -50,7 +50,9 @@ rule contig_kraken2:
     message:
         "Running kraken2 on {wildcards.sid}"
     shell:
-        "(date && kraken2 --threads {threads} --db {params.db} --confidence {params.confidence} --output {output.summary} --report {output.report} {input} && date) &> >(tee {log})"
+        "(date && kraken2 --threads {threads} --db {params.db} --confidence {params.confidence} --output {output.summary} --report {output.report} {input} && "
+        "touch {output.summary} {output.report} && "
+        "date) &> >(tee {log})"
 
 # Running Struo2 database
 use rule contig_kraken2 as contig_struo2_kraken2 with:
@@ -189,7 +191,9 @@ rule contig_kraken2_2kb:
     message:
         "Running kraken2 on size-filtered (>=2 kb) contigs for {wildcards.sid}"
     shell:
-        "(date && kraken2 --threads {threads} --db {params.db} --confidence {params.confidence} --output {output.summary} --report {output.report} {input} && date) &> >(tee {log})"
+        "(date && kraken2 --threads {threads} --db {params.db} --confidence {params.confidence} --output {output.summary} --report {output.report} {input} && "
+        "touch {output.summary} {output.report} && "
+        "date) &> >(tee {log})"
 
 rule contig_bracken_2kb:
     input:
@@ -308,7 +312,9 @@ rule contig_kraken2_10kb:
     message:
         "Running kraken2 on size-filtered (>=10 kb) contigs for {wildcards.sid}"
     shell:
-        "(date && kraken2 --threads {threads} --db {params.db} --confidence {params.confidence} --output {output.summary} --report {output.report} {input} && date) &> >(tee {log})"
+        "(date && kraken2 --threads {threads} --db {params.db} --confidence {params.confidence} --output {output.summary} --report {output.report} {input} && "
+        "touch {output.summary} {output.report} && "
+        "date) &> >(tee {log})"
 
 rule contig_bracken_10kb:
     input:
