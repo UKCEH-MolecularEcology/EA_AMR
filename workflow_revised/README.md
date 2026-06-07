@@ -116,8 +116,8 @@ Enable steps by adding their names to `steps` in `config/config.yaml`.
 
 | Step | Rule file | Addresses | Description |
 |---|---|---|---|
-| `organellar_filter` | `organellar_filter.smk` | R2 #5 | BBDuk filter of plastid and mitochondrion contigs before taxonomy |
-| `contig_size_filter` | `contig_size_filter.smk` | R2 #4 | seqkit contig filtering at ≥2 kb (AMR) and ≥10 kb (taxonomy sensitivity) |
+| `organellar_filter` | `organellar_filter.smk` | R2 #5 | BWA-based removal of plastid and mitochondrion contigs; `_noOrganellar.fasta` is the input for all downstream contig analyses |
+| `contig_size_filter` | `contig_size_filter.smk` | R2 #4 | seqkit filtering of organellar-free contigs at ≥2 kb and ≥10 kb |
 | `bracken_reads` | `bracken_reads.smk` | R2 #4 | Bracken on existing Kraken2 read reports (confidence=0.2) for taxonomy validation |
 | `bracken_highconf` | `bracken_reads.smk` | R2 #4 | Kraken2 reruns at confidence=0.5 and 0.7 from reads; Bracken on new reports |
 | `taxonomy_validation` | `taxonomy_validation.smk` | R2 #4 | Spearman correlations at phylum/class/genus: Kraken2 (3 confidence levels, 3 contig cutoffs) vs SingleM vs Sylph |
@@ -129,17 +129,27 @@ Enable steps by adding their names to `steps` in `config/config.yaml`.
 
 ### Step dependency order
 
+The organellar-filtered contigs (`_noOrganellar.fasta`) are the input for **all**
+downstream contig-level analyses — size filtering, taxonomy, geNomad, and ISEScan.
+
 ```
-assembly ──────────────────┬──► organellar_filter
-                           ├──► contig_size_filter ──► contig_taxonomy ──► taxonomy_validation
-                           └──► genomad ──────────────────────────────────────────────┐
-                                                                                       │
-annotation + coverage ─────────────────────────────────────────────────────────────────┤
-                                                                                       │
-sample_amr (RGI + fetchMG) ────────────────────────────────────────────────────────────┤
-                                                                                       ▼
-bracken_reads ─────────────────────────────────────► taxonomy_validation     mge_metal ──► contig_summary
-bracken_highconf ──────────────────────────────────► taxonomy_validation
+assembly
+    │
+    ▼
+organellar_filter (_noOrganellar.fasta)
+    ├──► contig_size_filter (_min2kb / _min10kb)
+    │        └──► contig_taxonomy ──────────────────────────────────────────► taxonomy_validation
+    ├──► contig_taxonomy (unfiltered size, no organelles)  ────────────────► taxonomy_validation
+    ├──► genomad (chromosome / plasmid / virus) ────────────────────────────────────────────┐
+    └──► mge_metal (ISEScan + BacMet2) ────────────────────────────────────────────────────┤
+                                                                                            │
+annotation + coverage ──────────────────────────────────────────────────────────────────────┤
+                                                                                            │
+sample_amr (RGI + fetchMG) ─────────────────────────────────────────────────────────────────┤
+                                                                                            ▼
+bracken_reads ──────────────────────────────────────────────────────────────────► taxonomy_validation
+bracken_highconf (c=0.5, c=0.7) ────────────────────────────────────────────────► taxonomy_validation
+                                                                           contig_summary ◄─┘
 binning ──► bin_amr
 ```
 
