@@ -35,6 +35,12 @@ if "taxonomy" in STEPS:
     include: "rules/singlem.smk"
     TARGETS += ["status/taxonomy.done", "status/singlem.done"]
 
+# SingleM on assembled contigs (genome mode, organellar-filtered)
+if "singlem_contigs" in STEPS:
+    if "taxonomy" not in STEPS:
+        include: "rules/singlem.smk"
+    TARGETS += ["status/singlem_contigs.done"]
+
 if "assembly" in STEPS:
     include: "rules/assembly.smk"
     TARGETS += ["status/assembly.done"]

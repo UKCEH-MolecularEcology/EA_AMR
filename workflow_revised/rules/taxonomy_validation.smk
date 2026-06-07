@@ -45,6 +45,7 @@ rule compare_taxonomy_methods:
             "combined_relab",
             "/prj/DECODE/EA_metag_post_analysis/results/taxonomy/singlem/combined_singlem_relab.csv"
         ),
+        singlem_contigs=os.path.join(RESULTS_DIR, "singlem_contigs/combined_singlem_contigs_relab.csv"),
         sylph=os.path.join(RESULTS_DIR, "sylph/profiling_prokaryotes.tsv")
     output:
         wide=expand(os.path.join(RESULTS_DIR, "taxonomy_validation/{rank}_comparison_wide.tsv"), rank=TAXON_RANKS.keys()),
@@ -180,8 +181,9 @@ rule compare_taxonomy_methods:
                 "Kraken2_contigs":      parse_combined_bracken(str(input.bracken_contigs),      rank_prefix),
                 "Kraken2_contigs_2kb":  parse_combined_bracken(str(input.bracken_contigs_2kb),  rank_prefix),
                 "Kraken2_contigs_10kb": parse_combined_bracken(str(input.bracken_contigs_10kb), rank_prefix),
-                "SingleM":              parse_singlem(str(input.singlem), rank_prefix),
-                "Sylph":                parse_sylph(str(input.sylph),    rank_prefix),
+                "SingleM_reads":        parse_singlem(str(input.singlem),         rank_prefix),
+                "SingleM_contigs":      parse_singlem(str(input.singlem_contigs), rank_prefix),
+                "Sylph":                parse_sylph(str(input.sylph),             rank_prefix),
             }
             # Include high-confidence Bracken runs if available (reads required)
             if os.path.exists(c05_path):
