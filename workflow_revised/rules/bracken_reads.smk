@@ -73,17 +73,18 @@ rule bracken_from_existing:
         os.path.join(ENV_DIR, "bracken.yaml")
     threads:
         config['kraken2']['threads']
-    params:
-        db=config['kraken2']['db'],
-        read=config['kraken2']['read'],
-        level=config['kraken2']['level'],
-        bracken=config['bracken']['bin']
     log:
         os.path.join(RESULTS_DIR, "logs/bracken_reads/bracken.{sid}.log")
     wildcard_constraints:
         sid="|".join(SAMPLES.index)
     message:
         "Bracken (from existing Kraken2 reports): {wildcards.sid}"
+    params:
+        db=config['kraken2']['db'],
+        read=config['kraken2']['read'],
+        level=config['kraken2']['level'],
+        bracken=config['bracken']['bin'],
+        header="name\ttaxonomy_id\ttaxonomy_lvl\tkraken_assigned_reads\tadded_reads\tnew_est_reads\tfraction_total_reads"
     shell:
         "(date && "
         "{params.bracken} "
@@ -92,7 +93,10 @@ rule bracken_from_existing:
         "-o {output.bracken} "
         "-w {output.report} "
         "-r {params.read} "
-        "-l {params.level} && "
+        "-l {params.level} || "
+        "(echo 'WARNING: Bracken found no reads at {params.level} level for {wildcards.sid} — writing empty output' && "
+        " printf '{params.header}\\n' > {output.bracken} && "
+        " cp {input.report} {output.report}) && "
         "date) &> >(tee {log})"
 
 
