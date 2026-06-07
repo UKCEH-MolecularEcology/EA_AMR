@@ -32,7 +32,7 @@ The pipeline produces:
 - ARG annotations (CARD-RGI) with genome-equivalent-normalised abundances (fetchMG)
 - Contig-level taxonomy at three length cutoffs (unfiltered, ≥2 kb, ≥10 kb)
 - Kraken2 read-level taxonomy at three confidence thresholds (0.2, 0.5, 0.7)
-- Taxonomy validation: Spearman correlations across Kraken2, SingleM, and Sylph
+- Taxonomy validation: Spearman correlations across Kraken2, SingleM (reads + contigs), and Sylph
 - Contig mobility classification (geNomad: chromosome / plasmid / virus)
 - Metal resistance gene annotation (BacMet2) and ARG–metal co-selection analysis
 - MAG generation, quality control, and ARG profiling (MetaBAT2 → CheckM2 → GTDB-Tk)
@@ -104,7 +104,7 @@ Enable steps by adding their names to `steps` in `config/config.yaml`.
 | Step | Rule file | Description |
 |---|---|---|
 | `preprocessing` | `preprocessing.smk` | Trim Galore QC, human read filtering (GRCh38), FastQC/MultiQC |
-| `taxonomy` | `taxonomy.smk` + `singlem.smk` | Kraken2+Bracken read-level taxonomy; SingleM marker gene profiling |
+| `taxonomy` | `taxonomy.smk` + `singlem.smk` | Kraken2+Bracken read-level taxonomy; SingleM read-based profiling (GTDB r226, database v5.4.0) |
 | `assembly` | `assembly.smk` | MEGAHIT metagenome assembly |
 | `annotation` | `annotation.smk` | Prodigal ORF prediction; EggNOG functional annotation |
 | `coverage` | `coverage.smk` | BWA read mapping; contig and gene-level coverage (jgi_summarize) |
@@ -120,7 +120,8 @@ Enable steps by adding their names to `steps` in `config/config.yaml`.
 | `contig_size_filter` | `contig_size_filter.smk` | R2 #4 | seqkit filtering of organellar-free contigs at ≥2 kb and ≥10 kb |
 | `bracken_reads` | `bracken_reads.smk` | R2 #4 | Bracken on existing Kraken2 read reports (confidence=0.2) for taxonomy validation |
 | `bracken_highconf` | `bracken_reads.smk` | R2 #4 | Kraken2 reruns at confidence=0.5 and 0.7 from reads; Bracken on new reports |
-| `taxonomy_validation` | `taxonomy_validation.smk` | R2 #4 | Spearman correlations at phylum/class/genus: Kraken2 (3 confidence levels, 3 contig cutoffs) vs SingleM vs Sylph |
+| `singlem_contigs` | `singlem.smk` | R2 #4 | SingleM in genome/assembly mode (`-f`) on organellar-filtered contigs; adds contig-based marker gene taxonomy |
+| `taxonomy_validation` | `taxonomy_validation.smk` | R2 #4 | Spearman correlations at phylum/class/genus across 7 methods: Kraken2 reads (c=0.2/0.5/0.7), Kraken2 contigs (unfiltered/2kb/10kb), SingleM reads, SingleM contigs, Sylph |
 | `genomad` | `genomad.smk` | R1 #2, R1 #3 | geNomad contig classification: chromosome / plasmid / virus |
 | `mge_metal` | `mge_metal.smk` | R1 #6 | ISEScan insertion sequences; BacMet2 metal resistance genes (DIAMOND); ARG+MGE co-occurrence using geNomad + ISEScan |
 | `binning` | `binning.smk` | R1 #3, R2 #3 | MetaBAT2 binning; CheckM2 QC (≥50% completeness, ≤10% contamination); dRep dereplication; GTDB-Tk taxonomy |
@@ -140,6 +141,7 @@ organellar_filter (_noOrganellar.fasta)
     ├──► contig_size_filter (_min2kb / _min10kb)
     │        └──► contig_taxonomy ──────────────────────────────────────────► taxonomy_validation
     ├──► contig_taxonomy (unfiltered size, no organelles)  ────────────────► taxonomy_validation
+    ├──► singlem_contigs (marker gene taxonomy on contigs) ─────────────────► taxonomy_validation
     ├──► genomad (chromosome / plasmid / virus) ────────────────────────────────────────────┐
     └──► mge_metal (ISEScan + BacMet2) ────────────────────────────────────────────────────┤
                                                                                             │
@@ -255,7 +257,8 @@ All outputs are written to `results_dir` (default: `/prj/DECODE/EA_AMR/RGI_resul
 |---|---|
 | `taxonomy_validation/{rank}_comparison_wide.tsv` | Relative abundances per method × sample (rank = phylum/class/genus) |
 | `taxonomy_validation/{rank}_correlations.tsv` | Pairwise Spearman r between all methods per taxon |
-| `taxonomy_validation/validation_summary.tsv` | Summary: Kraken2 contigs vs SingleM and Sylph; high-confidence flag |
+| `taxonomy_validation/validation_summary.tsv` | Summary: all 7-method pairwise Spearman r at phylum/class/genus; high-confidence flag (r>0.7 for both key comparisons) |
+| `singlem_contigs/combined_singlem_contigs_relab.csv` | SingleM contig-mode relative abundance across all samples |
 
 ### geNomad
 
