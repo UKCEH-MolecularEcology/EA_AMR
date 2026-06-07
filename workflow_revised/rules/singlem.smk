@@ -35,7 +35,7 @@ rule setup_singlem_db:
     log:
         os.path.join(RESULTS_DIR, "logs/setup.singlem.db.log")
     conda:
-        "/home/susbus/miniforge3/envs/singlem"
+        "singlem"
     message:
         "Setup: download singleM database"
     shell:
@@ -54,7 +54,7 @@ rule run_singlem:
     log:
         os.path.join(RESULTS_DIR, "logs/singlem/{sid}.log")
     conda:
-        "/home/susbus/miniforge3/envs/singlem"
+        "singlem"
     threads:
         config["singlem"]["threads"]
     params:
@@ -76,7 +76,7 @@ rule summarise_singlem:
     log:
         os.path.join(RESULTS_DIR, "logs/single/combine.log")
     conda:
-        "/home/susbus/miniforge3/envs/singlem"
+        "singlem"
     message:
         "Combined all singlem outputs"
     shell:
@@ -108,7 +108,7 @@ rule run_singlem_contigs:
     log:
         os.path.join(RESULTS_DIR, "logs/singlem_contigs/{sid}.log")
     conda:
-        "/home/susbus/miniforge3/envs/singlem"
+        "singlem"
     threads:
         config["singlem"]["threads"]
     priority: 1
@@ -134,7 +134,7 @@ rule summarise_singlem_contigs:
     log:
         os.path.join(RESULTS_DIR, "logs/singlem_contigs/combine.log")
     conda:
-        "/home/susbus/miniforge3/envs/singlem"
+        "singlem"
     message:
         "Combining all SingleM contig outputs"
     shell:
