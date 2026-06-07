@@ -74,6 +74,10 @@ rule sample_annotation_rgi:
         os.path.join(RESULTS_DIR, "logs/rgi.{sid}.log")
     threads:
         config["prodigal"]["threads"]
+    resources:
+        # Serialise CARD database access — multiple concurrent RGI jobs collide
+        # on the shared LMDB taxonomy files causing CSeqDBException/core dump.
+        card_db=1
     params:
         alignment_tool="DIAMOND"
     conda:
