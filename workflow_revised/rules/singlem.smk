@@ -62,9 +62,8 @@ rule run_singlem:
     message:
         "Running singlem on: {wildcards.sid}"
     shell:
-        "(date && "
-        "singlem pipe --metapackage {params.db}/{config[singlem][db]} "
-        "-1 {input[0]} -2 {input[1]} -p {output.profile} --otu-table {output.table} --threads {threads} && "
+        "(date && export SINGLEM_METAPACKAGE_PATH={params.db}/{config[singlem][db]} && "
+        "singlem pipe -1 {input[0]} -2 {input[1]} -p {output.profile} --otu-table {output.table} --threads {threads} && "
         "date) &> >(tee {log})"
 
 rule summarise_singlem:
@@ -120,9 +119,8 @@ rule run_singlem_contigs:
     message:
         "SingleM (contigs): {wildcards.sid}"
     shell:
-        "(date && "
-        "singlem pipe --metapackage {params.db}/{config[singlem][db]} "
-        "-f {input.fasta} -p {output.profile} --otu-table {output.table} --threads {threads} && "
+        "(date && export SINGLEM_METAPACKAGE_PATH={params.db}/{config[singlem][db]} && "
+        "singlem pipe -f {input.fasta} -p {output.profile} --otu-table {output.table} --threads {threads} && "
         "date) &> >(tee {log})"
 
 

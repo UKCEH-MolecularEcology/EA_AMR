@@ -77,7 +77,7 @@ bracken:
 # https://wwood.github.io/singlem/Installation
 singlem:
   threads: 36
-  db: "S3.2.1.GTDB_r214.metapackage_20231006.smpkg.zb"
+  db: "S5.4.0.GTDB_r226.metapackage_20250331.smpkg.zb"
 
 # MEGAHIT
 # https://github.com/voutcn/megahit
