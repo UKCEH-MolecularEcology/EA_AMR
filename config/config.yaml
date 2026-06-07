@@ -4,7 +4,7 @@
 # Steps to be done
 # steps: "taxonomy"
 # steps: ["preprocessing", "taxonomy", "assembly", "contig_taxonomy", "annotation", "coverage"] #TODO: "function"
-steps: ["sample_amr", "organellar_filter", "contig_size_filter", "contig_taxonomy", "bracken_reads", "bracken_highconf", "taxonomy_validation", "genomad", "mge_metal", "contig_summary"]
+steps: ["sample_amr", "organellar_filter", "contig_size_filter", "contig_taxonomy", "bracken_reads", "bracken_highconf", "singlem_contigs", "taxonomy_validation", "genomad", "mge_metal", "contig_summary"]
 
 ############################################################
 # INPUT
