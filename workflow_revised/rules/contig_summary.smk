@@ -76,7 +76,7 @@ rule build_contig_master_table:
         ),
         # ISEScan summaries
         isescan=expand(
-            os.path.join(RESULTS_DIR, "isescan/{sid}/assembly/{sid}.fasta.sum"),
+            os.path.join(RESULTS_DIR, "isescan/{sid}/assembly_filtered/{sid}/{sid}_noOrganellar.fasta.sum"),
             sid=SAMPLES.index
         ),
         # Kraken2 contig-level .out files at three length cutoffs

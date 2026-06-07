@@ -66,7 +66,7 @@ rule download_genomad_db:
 # database), otherwise falls back to the downloaded copy in DB_DIR/genomad/.
 rule run_genomad:
     input:
-        fasta=os.path.join(DATA_DIR, "assembly/{sid}.fasta")
+        fasta=os.path.join(RESULTS_DIR, "assembly_filtered/{sid}/{sid}_noOrganellar.fasta")
     priority: -1
     output:
         classification=os.path.join(

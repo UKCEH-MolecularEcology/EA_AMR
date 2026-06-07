@@ -23,7 +23,7 @@ rule binning:
 # Per-sample rules
 rule metabat2_binning:
     input:
-        fasta = os.path.join(RESULTS_DIR, "assembly/{sid}/{sid}.fasta"),
+        fasta = os.path.join(RESULTS_DIR, "assembly_filtered/{sid}/{sid}_noOrganellar.fasta"),
         depth = os.path.join(RESULTS_DIR, "coverage/{sid}/{sid}_depth.txt")
     output:
         flag  = touch(os.path.join(RESULTS_DIR, "bins/{sid}/metabat2.done"))
