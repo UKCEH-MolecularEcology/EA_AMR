@@ -164,7 +164,7 @@ rule isescan_mge:
         outdir=directory(os.path.join(RESULTS_DIR, "isescan/{sid}")),
         # ISEScan mirrors the input directory structure inside outdir, so the
         # .sum file lands under assembly_filtered/ (the parent dir of the input fasta).
-        summ=os.path.join(RESULTS_DIR, "isescan/{sid}/assembly_filtered/{sid}/{sid}_noOrganellar.fasta.sum")
+        summ=os.path.join(RESULTS_DIR, "isescan/{sid}/{sid}/{sid}_noOrganellar.fasta.sum")
     priority: -1
     log:
         os.path.join(RESULTS_DIR, "logs/isescan.{sid}.log")
@@ -189,7 +189,7 @@ rule isescan_mge:
 # ISEScan adds insertion-sequence resolution within chromosomal contigs.
 rule mge_arg_cooccurrence:
     input:
-        is_sum=os.path.join(RESULTS_DIR, "isescan/{sid}/assembly_filtered/{sid}/{sid}_noOrganellar.fasta.sum"),
+        is_sum=os.path.join(RESULTS_DIR, "isescan/{sid}/{sid}/{sid}_noOrganellar.fasta.sum"),
         rgi=os.path.join(RESULTS_DIR, "amr/{sid}/{sid}_rgi.txt"),
         genomad=os.path.join(
             RESULTS_DIR,

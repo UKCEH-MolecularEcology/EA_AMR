@@ -76,7 +76,7 @@ rule build_contig_master_table:
         ),
         # ISEScan summaries
         isescan=expand(
-            os.path.join(RESULTS_DIR, "isescan/{sid}/assembly_filtered/{sid}/{sid}_noOrganellar.fasta.sum"),
+            os.path.join(RESULTS_DIR, "isescan/{sid}/{sid}/{sid}_noOrganellar.fasta.sum"),
             sid=SAMPLES.index
         ),
         # Kraken2 contig-level .out files at three length cutoffs
@@ -229,7 +229,7 @@ rule build_contig_master_table:
             p.split("/genomad/")[1].split("/")[0]: p for p in input.genomad
         }
         isescan_by_sid = {
-            os.path.basename(p).split(".fasta")[0]: p for p in input.isescan
+            os.path.basename(p).split("_noOrganellar")[0]: p for p in input.isescan
         }
         k2_raw_by_sid  = {_sid_from(p, "/", "_kraken.out"): p for p in input.k2_raw}
         k2_2kb_by_sid  = {_sid_from(p, "/", "_kraken.out"): p for p in input.k2_2kb}
