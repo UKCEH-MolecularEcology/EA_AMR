@@ -162,9 +162,9 @@ rule isescan_mge:
         fasta=os.path.join(RESULTS_DIR, "assembly_filtered/{sid}/{sid}_noOrganellar.fasta")
     output:
         outdir=directory(os.path.join(RESULTS_DIR, "isescan/{sid}")),
-        # ISEScan mirrors the input directory structure inside outdir, so the
-        # .sum file lands under assembly_filtered/ (the parent dir of the input fasta).
-        summ=os.path.join(RESULTS_DIR, "isescan/{sid}/{sid}/{sid}_noOrganellar.fasta.sum")
+        # Symlink the input into outdir so ISEScan only sees the bare filename,
+        # making the mirrored output path predictable: {outdir}/{filename}.sum
+        summ=os.path.join(RESULTS_DIR, "isescan/{sid}/{sid}_noOrganellar.fasta.sum")
     priority: -1
     log:
         os.path.join(RESULTS_DIR, "logs/isescan.{sid}.log")
@@ -178,8 +178,13 @@ rule isescan_mge:
     shell:
         "(date && "
         "mkdir -p {output.outdir} && "
+        # Symlink input into outdir so ISEScan sees only the filename (no path to mirror)
+        "ln -sf {input.fasta} {output.outdir}/{wildcards.sid}_noOrganellar.fasta && "
         "cd {output.outdir} && "
-        "isescan.py --seqfile {input.fasta} --output {output.outdir} --nthread {threads} && "
+        "isescan.py --seqfile {wildcards.sid}_noOrganellar.fasta "
+        "--output {output.outdir} --nthread {threads} && "
+        # Remove the symlink; keep only ISEScan's own outputs
+        "rm -f {output.outdir}/{wildcards.sid}_noOrganellar.fasta && "
         "date) &> >(tee {log})"
 
 
@@ -189,7 +194,7 @@ rule isescan_mge:
 # ISEScan adds insertion-sequence resolution within chromosomal contigs.
 rule mge_arg_cooccurrence:
     input:
-        is_sum=os.path.join(RESULTS_DIR, "isescan/{sid}/{sid}/{sid}_noOrganellar.fasta.sum"),
+        is_sum=os.path.join(RESULTS_DIR, "isescan/{sid}/{sid}_noOrganellar.fasta.sum"),
         rgi=os.path.join(RESULTS_DIR, "amr/{sid}/{sid}_rgi.txt"),
         genomad=os.path.join(
             RESULTS_DIR,
