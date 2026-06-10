@@ -229,6 +229,7 @@ genomad:
   threads: 16
   min_score: 0.7
   db_path: "/hdd0/susbus/databases/ViWrap_db/genomad_db"
+  bin: "/prj/DECODE/conda_envs/viwrap/ViWrap-geNomad/bin/genomad"
 
 # BACMET2
 bacmet:

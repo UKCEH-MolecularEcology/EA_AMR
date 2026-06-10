@@ -86,7 +86,8 @@ rule run_genomad:
             "db_path", os.path.join(DB_DIR, "genomad/genomad_db")
         ),
         out_dir=os.path.join(RESULTS_DIR, "genomad/{sid}"),
-        min_score=config.get("genomad", {}).get("min_score", 0.7)
+        min_score=config.get("genomad", {}).get("min_score", 0.7),
+        bin=config.get("genomad", {}).get("bin", "genomad")
     threads:
         config.get("genomad", {}).get("threads", 16)
     conda:
@@ -99,9 +100,7 @@ rule run_genomad:
         "geNomad: classifying contigs as chromosome/plasmid/virus for {wildcards.sid}"
     shell:
         "(date && "
-        # Use the full path to avoid picking up a broken user-local install
-        # at ~/.local/bin/genomad which is missing pyrodigal.
-        "/prj/DECODE/conda_envs/viwrap/ViWrap-geNomad/bin/genomad end-to-end "
+        "{params.bin} end-to-end "
         "--min-score {params.min_score} "
         "--threads {threads} "
         "--cleanup "
