@@ -99,7 +99,9 @@ rule run_genomad:
         "geNomad: classifying contigs as chromosome/plasmid/virus for {wildcards.sid}"
     shell:
         "(date && "
-        "genomad end-to-end "
+        # Use the full path to avoid picking up a broken user-local install
+        # at ~/.local/bin/genomad which is missing pyrodigal.
+        "/prj/DECODE/conda_envs/viwrap/ViWrap-geNomad/bin/genomad end-to-end "
         "--min-score {params.min_score} "
         "--threads {threads} "
         "--cleanup "
