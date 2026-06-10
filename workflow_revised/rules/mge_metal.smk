@@ -264,8 +264,8 @@ rule mge_arg_cooccurrence:
         # ── geNomad classification (optional — used if output already exists) ──
         genomad_path = os.path.join(
             RESULTS_DIR,
-            f"genomad/{wildcards.sid}/{wildcards.sid}_aggregated_classification"
-            f"/{wildcards.sid}_aggregated_classification.tsv"
+            f"genomad/{wildcards.sid}/{wildcards.sid}_noOrganellar_aggregated_classification"
+            f"/{wildcards.sid}_noOrganellar_aggregated_classification.tsv"
         )
         try:
             gd = pd.read_csv(genomad_path, sep="\t") if os.path.exists(genomad_path) else pd.DataFrame()

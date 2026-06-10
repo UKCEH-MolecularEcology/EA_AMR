@@ -70,7 +70,7 @@ rule build_contig_master_table:
         genomad=expand(
             os.path.join(
                 RESULTS_DIR,
-                "genomad/{sid}/{sid}_aggregated_classification/{sid}_aggregated_classification.tsv"
+                "genomad/{sid}/{sid}_noOrganellar_aggregated_classification/{sid}_noOrganellar_aggregated_classification.tsv"
             ),
             sid=SAMPLES.index
         ),
