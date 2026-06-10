@@ -16,7 +16,8 @@ rule mge_metal:
     input:
         os.path.join(RESULTS_DIR, "metal_resistance/combined_metal_resistance.tsv"),
         os.path.join(RESULTS_DIR, "mge_cooccurrence/combined_mge_arg_summary.tsv"),
-        os.path.join(RESULTS_DIR, "genomad/combined_genomad_classification.tsv")
+        os.path.join(RESULTS_DIR, "genomad/combined_genomad_classification.tsv"),
+        expand(os.path.join(RESULTS_DIR, "mobilefinder/{sid}/{sid}_mge.tsv"), sid=SAMPLES.index)
     output:
         touch("status/mge_metal.done")
 
@@ -156,45 +157,73 @@ rule summarise_metal_resistance:
 
 
 ############################################
-# Run ISEScan per sample to detect insertion sequences
-rule isescan_mge:
+# MobileElementFinder — replaces ISEScan (faster, BLAST-based, detects IS
+# elements, transposons, integrons, and ICEs via the MGEdb database).
+# Install: pip install mobileelementfinder  (see envs/mobileelementfinder.yaml)
+rule mobilefinder_mge:
     input:
         fasta=os.path.join(RESULTS_DIR, "assembly_filtered/{sid}/{sid}_noOrganellar.fasta")
     output:
-        outdir=directory(os.path.join(RESULTS_DIR, "isescan/{sid}")),
-        # Symlink the input into outdir so ISEScan only sees the bare filename,
-        # making the mirrored output path predictable: {outdir}/{filename}.sum
-        summ=os.path.join(RESULTS_DIR, "isescan/{sid}/{sid}_noOrganellar.fasta.sum")
+        tsv=os.path.join(RESULTS_DIR, "mobilefinder/{sid}/{sid}_mge.tsv")
     priority: -1
     log:
-        os.path.join(RESULTS_DIR, "logs/isescan.{sid}.log")
-    threads: 32
+        os.path.join(RESULTS_DIR, "logs/mobilefinder.{sid}.log")
+    threads: 8
     conda:
-        os.path.join(ENV_DIR, "isescan.yaml")
+        os.path.join(ENV_DIR, "mobileelementfinder.yaml")
     wildcard_constraints:
         sid="|".join(SAMPLES.index)
     message:
-        "MGE: ISEScan for {wildcards.sid}"
+        "MGE: MobileElementFinder for {wildcards.sid}"
     shell:
         "(date && "
-        "mkdir -p {output.outdir} && "
-        # Symlink input into outdir so ISEScan sees only the filename (no path to mirror)
-        "ln -sf {input.fasta} {output.outdir}/{wildcards.sid}_noOrganellar.fasta && "
-        "cd {output.outdir} && "
-        "isescan.py --seqfile {wildcards.sid}_noOrganellar.fasta "
-        "--output {output.outdir} --nthread {threads} && "
-        # Remove the symlink; keep only ISEScan's own outputs
-        "rm -f {output.outdir}/{wildcards.sid}_noOrganellar.fasta && "
+        "mkdir -p $(dirname {output.tsv}) && "
+        "mobilefinder -i {input.fasta} -o $(dirname {output.tsv}) --threads {threads} && "
+        # MobileElementFinder writes results.tsv; rename to per-sample name
+        "mv $(dirname {output.tsv})/results.tsv {output.tsv} || "
+        "touch {output.tsv} && "
         "date) &> >(tee {log})"
 
 
 ############################################
-# Co-occurrence analysis: ISEs + geNomad plasmid/virus + ARGs on the same contig
-# geNomad provides the broadest MGE classification (plasmids + phages);
-# ISEScan adds insertion-sequence resolution within chromosomal contigs.
+# ISEScan — commented out; replaced by MobileElementFinder above.
+# Kept for reference; re-enable by uncommenting and swapping the
+# mge_arg_cooccurrence input from mobilefinder to isescan.
+#
+# rule isescan_mge:
+#     input:
+#         fasta=os.path.join(RESULTS_DIR, "assembly_filtered/{sid}/{sid}_noOrganellar.fasta")
+#     output:
+#         outdir=directory(os.path.join(RESULTS_DIR, "isescan/{sid}")),
+#         summ=os.path.join(RESULTS_DIR, "isescan/{sid}/{sid}_noOrganellar.fasta.sum")
+#     priority: -1
+#     log:
+#         os.path.join(RESULTS_DIR, "logs/isescan.{sid}.log")
+#     threads: 32
+#     conda:
+#         os.path.join(ENV_DIR, "isescan.yaml")
+#     wildcard_constraints:
+#         sid="|".join(SAMPLES.index)
+#     message:
+#         "MGE: ISEScan for {wildcards.sid}"
+#     shell:
+#         "(date && "
+#         "mkdir -p {output.outdir} && "
+#         "ln -sf {input.fasta} {output.outdir}/{wildcards.sid}_noOrganellar.fasta && "
+#         "cd {output.outdir} && "
+#         "isescan.py --seqfile {wildcards.sid}_noOrganellar.fasta "
+#         "--output {output.outdir} --nthread {threads} && "
+#         "rm -f {output.outdir}/{wildcards.sid}_noOrganellar.fasta && "
+#         "date) &> >(tee {log})"
+
+
+############################################
+# Co-occurrence analysis: MobileElementFinder MGEs + geNomad plasmid/virus + ARGs
+# geNomad provides plasmid/phage classification at contig level;
+# MobileElementFinder adds IS element, transposon, integron, and ICE resolution.
 rule mge_arg_cooccurrence:
     input:
-        is_sum=os.path.join(RESULTS_DIR, "isescan/{sid}/{sid}_noOrganellar.fasta.sum"),
+        mge_tsv=os.path.join(RESULTS_DIR, "mobilefinder/{sid}/{sid}_mge.tsv"),
         rgi=os.path.join(RESULTS_DIR, "amr/{sid}/{sid}_rgi.txt"),
         genomad=os.path.join(
             RESULTS_DIR,
@@ -207,20 +236,29 @@ rule mge_arg_cooccurrence:
     wildcard_constraints:
         sid="|".join(SAMPLES.index)
     message:
-        "MGE-ARG co-occurrence (ISEScan + geNomad): {wildcards.sid}"
+        "MGE-ARG co-occurrence (MobileElementFinder + geNomad): {wildcards.sid}"
     run:
         import os
         import pandas as pd
 
-        # ── ISEScan insertion sequences ───────────────────────────────────────
+        # ── MobileElementFinder insertion sequences / mobile elements ─────────
+        # Output TSV columns (MobileElementFinder v1.x):
+        #   sequence_id, type, subtype, name, start, end, strand, ...
+        # 'sequence_id' is the contig name; 'type'/'subtype' gives element family.
         try:
-            is_df = pd.read_csv(input.is_sum, sep=r"\s+", comment="#", engine="python")
-            is_contigs = set(is_df["seqID"].astype(str)) if "seqID" in is_df.columns else set()
-            is_families = (
-                is_df.groupby("seqID")["isFamily"]
-                .apply(lambda x: ",".join(sorted(set(x.astype(str)))))
-                .to_dict()
-            ) if "seqID" in is_df.columns and "isFamily" in is_df.columns else {}
+            mge_df = pd.read_csv(input.mge_tsv, sep="\t")
+            # Identify sequence and type columns (handle minor version differences)
+            seq_col  = next((c for c in ["sequence_id", "seqID", "contig", "seq_id"] if c in mge_df.columns), None)
+            type_col = next((c for c in ["type", "element_type", "subtype", "isFamily"] if c in mge_df.columns), None)
+            if seq_col:
+                is_contigs = set(mge_df[seq_col].astype(str))
+                is_families = (
+                    mge_df.groupby(seq_col)[type_col]
+                    .apply(lambda x: ",".join(sorted(set(x.astype(str)))))
+                    .to_dict()
+                ) if type_col else {c: "mobile_element" for c in is_contigs}
+            else:
+                is_contigs, is_families = set(), {}
         except (pd.errors.EmptyDataError, FileNotFoundError, KeyError):
             is_contigs, is_families = set(), {}
 

@@ -74,9 +74,9 @@ rule build_contig_master_table:
             ),
             sid=SAMPLES.index
         ),
-        # ISEScan summaries
+        # MobileElementFinder results (replaces ISEScan)
         isescan=expand(
-            os.path.join(RESULTS_DIR, "isescan/{sid}/{sid}_noOrganellar.fasta.sum"),
+            os.path.join(RESULTS_DIR, "mobilefinder/{sid}/{sid}_mge.tsv"),
             sid=SAMPLES.index
         ),
         # Kraken2 contig-level .out files at three length cutoffs
@@ -154,13 +154,20 @@ rule build_contig_master_table:
             return result
 
         def parse_isescan(path):
-            """Return dict contig_id -> comma-joined IS families."""
+            """Return dict contig_id -> comma-joined MGE families.
+            Handles both MobileElementFinder TSV and legacy ISEScan .sum format.
+            MobileElementFinder columns: sequence_id, type, subtype, name, ...
+            ISEScan columns: seqID, isFamily, ...
+            """
             result = {}
             try:
-                df = pd.read_csv(path, sep=r"\s+", comment="#", engine="python")
-                if "seqID" in df.columns and "isFamily" in df.columns:
-                    for cid, grp in df.groupby("seqID"):
-                        result[str(cid)] = ",".join(sorted(set(grp["isFamily"].astype(str))))
+                df = pd.read_csv(path, sep="\t")
+                # MobileElementFinder
+                seq_col  = next((c for c in ["sequence_id", "seqID"] if c in df.columns), None)
+                type_col = next((c for c in ["type", "subtype", "isFamily"] if c in df.columns), None)
+                if seq_col and type_col:
+                    for cid, grp in df.groupby(seq_col):
+                        result[str(cid)] = ",".join(sorted(set(grp[type_col].astype(str))))
             except Exception:
                 pass
             return result
@@ -229,7 +236,7 @@ rule build_contig_master_table:
             p.split("/genomad/")[1].split("/")[0]: p for p in input.genomad
         }
         isescan_by_sid = {
-            os.path.basename(p).split("_noOrganellar")[0]: p for p in input.isescan
+            os.path.basename(p).replace("_mge.tsv", ""): p for p in input.isescan
         }
         k2_raw_by_sid  = {_sid_from(p, "/", "_kraken.out"): p for p in input.k2_raw}
         k2_2kb_by_sid  = {_sid_from(p, "/", "_kraken.out"): p for p in input.k2_2kb}
