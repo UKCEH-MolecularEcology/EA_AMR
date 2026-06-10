@@ -224,11 +224,10 @@ rule mobilefinder_mge:
 rule mge_arg_cooccurrence:
     input:
         mge_tsv=os.path.join(RESULTS_DIR, "mobilefinder/{sid}/{sid}_mge.tsv"),
-        rgi=os.path.join(RESULTS_DIR, "amr/{sid}/{sid}_rgi.txt"),
-        genomad=os.path.join(
-            RESULTS_DIR,
-            "genomad/{sid}/{sid}_aggregated_classification/{sid}_aggregated_classification.tsv"
-        )
+        rgi=os.path.join(RESULTS_DIR, "amr/{sid}/{sid}_rgi.txt")
+        # geNomad classification is optional — loaded at runtime if present,
+        # so this rule runs as soon as MobileElementFinder + RGI are done
+        # without waiting for the slower geNomad step.
     output:
         os.path.join(RESULTS_DIR, "mge_cooccurrence/{sid}/{sid}_mge_arg_contigs.tsv")
     log:
@@ -236,7 +235,7 @@ rule mge_arg_cooccurrence:
     wildcard_constraints:
         sid="|".join(SAMPLES.index)
     message:
-        "MGE-ARG co-occurrence (MobileElementFinder + geNomad): {wildcards.sid}"
+        "MGE-ARG co-occurrence (MobileElementFinder + geNomad if available): {wildcards.sid}"
     run:
         import os
         import pandas as pd
@@ -262,9 +261,14 @@ rule mge_arg_cooccurrence:
         except (pd.errors.EmptyDataError, FileNotFoundError, KeyError):
             is_contigs, is_families = set(), {}
 
-        # ── geNomad classification ────────────────────────────────────────────
+        # ── geNomad classification (optional — used if output already exists) ──
+        genomad_path = os.path.join(
+            RESULTS_DIR,
+            f"genomad/{wildcards.sid}/{wildcards.sid}_aggregated_classification"
+            f"/{wildcards.sid}_aggregated_classification.tsv"
+        )
         try:
-            gd = pd.read_csv(input.genomad, sep="\t")
+            gd = pd.read_csv(genomad_path, sep="\t") if os.path.exists(genomad_path) else pd.DataFrame()
             seq_col = "seq_name" if "seq_name" in gd.columns else "sequence"
             plasmid_contigs = set(gd.loc[gd["classification"] == "Plasmid", seq_col].astype(str))
             virus_contigs   = set(gd.loc[gd["classification"] == "Virus",   seq_col].astype(str))
