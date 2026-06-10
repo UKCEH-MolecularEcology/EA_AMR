@@ -25,7 +25,7 @@ rule genomad:
         expand(
             os.path.join(
                 RESULTS_DIR,
-                "genomad/{sid}/{sid}_aggregated_classification/{sid}_aggregated_classification.tsv"
+                "genomad/{sid}/{sid}_noOrganellar_aggregated_classification/{sid}_noOrganellar_aggregated_classification.tsv"
             ),
             sid=SAMPLES.index
         )
@@ -71,15 +71,15 @@ rule run_genomad:
     output:
         classification=os.path.join(
             RESULTS_DIR,
-            "genomad/{sid}/{sid}_aggregated_classification/{sid}_aggregated_classification.tsv"
+            "genomad/{sid}/{sid}_noOrganellar_aggregated_classification/{sid}_noOrganellar_aggregated_classification.tsv"
         ),
         plasmid_summary=os.path.join(
             RESULTS_DIR,
-            "genomad/{sid}/{sid}_summary/{sid}_plasmid_summary.tsv"
+            "genomad/{sid}/{sid}_noOrganellar_summary/{sid}_noOrganellar_plasmid_summary.tsv"
         ),
         virus_summary=os.path.join(
             RESULTS_DIR,
-            "genomad/{sid}/{sid}_summary/{sid}_virus_summary.tsv"
+            "genomad/{sid}/{sid}_noOrganellar_summary/{sid}_noOrganellar_virus_summary.tsv"
         )
     params:
         db_dir=config.get("genomad", {}).get(
@@ -117,7 +117,7 @@ rule combine_genomad:
         expand(
             os.path.join(
                 RESULTS_DIR,
-                "genomad/{sid}/{sid}_aggregated_classification/{sid}_aggregated_classification.tsv"
+                "genomad/{sid}/{sid}_noOrganellar_aggregated_classification/{sid}_noOrganellar_aggregated_classification.tsv"
             ),
             sid=SAMPLES.index
         )
