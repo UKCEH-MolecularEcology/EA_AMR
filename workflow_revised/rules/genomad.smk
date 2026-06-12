@@ -49,7 +49,7 @@ rule download_genomad_db:
     log:
         os.path.join(RESULTS_DIR, "logs/genomad/download_genomad_db.log")
     conda:
-        os.path.join(ENV_DIR, "genomad.yaml")
+        "ViWrap-geNomad"
     message:
         "Setup: downloading geNomad database"
     shell:
@@ -91,7 +91,7 @@ rule run_genomad:
     threads:
         config.get("genomad", {}).get("threads", 16)
     conda:
-        os.path.join(ENV_DIR, "genomad.yaml")
+        "ViWrap-geNomad"
     log:
         os.path.join(RESULTS_DIR, "logs/genomad/run_genomad.{sid}.log")
     wildcard_constraints:

@@ -60,7 +60,7 @@ rule checkm2_quality:
     threads:
         config["checkm"]["threads"]
     conda:
-        os.path.join(ENV_DIR, "checkm.yaml")
+        "checkm2"
     wildcard_constraints:
         sid = "|".join(SAMPLES.index)
     log:
@@ -138,7 +138,7 @@ rule dereplicate_bins:
     threads:
         config["drep"]["threads"]
     conda:
-        os.path.join(ENV_DIR, "drep.yaml")
+        "ViWrap-dRep"
     log:
         os.path.join(RESULTS_DIR, "logs/drep.log")
     message:
@@ -163,7 +163,7 @@ rule gtdbtk_classify:
     threads:
         config["gtdbtk"]["threads"]
     conda:
-        os.path.join(ENV_DIR, "gtdbtk.yaml")
+        "ViWrap-GTDBTk"
     log:
         os.path.join(RESULTS_DIR, "logs/gtdbtk.log")
     message:
