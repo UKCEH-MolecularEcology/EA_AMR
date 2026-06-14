@@ -25,9 +25,9 @@ Purpose: Build an integrated per-contig master table joining:
            coselected,
            genomad_classification, genomad_plasmid_score, genomad_virus_score,
            IS_element_families,
-           kraken_taxid_raw, kraken_status_raw,
-           kraken_taxid_2kb, kraken_status_2kb,
-           kraken_taxid_10kb, kraken_status_10kb
+           kraken_lineage_raw (taxonomy at unfiltered contig cutoff),
+           kraken_lineage_2kb (taxonomy at >=2kb cutoff),
+           kraken_lineage_10kb (taxonomy at >=10kb cutoff)
 """
 
 
@@ -79,17 +79,29 @@ rule build_contig_master_table:
             os.path.join(RESULTS_DIR, "mobilefinder/{sid}/{sid}_mge.tsv"),
             sid=SAMPLES.index
         ),
-        # Kraken2 contig-level .out files at three length cutoffs
+        # Kraken2 contig-level .out files (contig→taxid) + .report (taxid→lineage)
         k2_raw=expand(
             os.path.join(RESULTS_DIR, "kraken2/contig/{sid}_kraken.out"),
+            sid=SAMPLES.index
+        ),
+        k2_raw_report=expand(
+            os.path.join(RESULTS_DIR, "kraken2/contig/{sid}_kraken.report"),
             sid=SAMPLES.index
         ),
         k2_2kb=expand(
             os.path.join(RESULTS_DIR, "kraken2/contig_2kb/{sid}_kraken.out"),
             sid=SAMPLES.index
         ),
+        k2_2kb_report=expand(
+            os.path.join(RESULTS_DIR, "kraken2/contig_2kb/{sid}_kraken.report"),
+            sid=SAMPLES.index
+        ),
         k2_10kb=expand(
             os.path.join(RESULTS_DIR, "kraken2/contig_10kb/{sid}_kraken.out"),
+            sid=SAMPLES.index
+        ),
+        k2_10kb_report=expand(
+            os.path.join(RESULTS_DIR, "kraken2/contig_10kb/{sid}_kraken.report"),
             sid=SAMPLES.index
         ),
         # SingleM contig-mode OTU tables with --output-extras (contig name tracking)
@@ -138,8 +150,51 @@ rule build_contig_master_table:
                     return cls
             return "other"
 
-        def parse_kraken_out(path):
-            """Return dict contig_id -> (status, taxid)."""
+        def parse_kraken_report_lineages(path):
+            """Parse Kraken2 report to build taxid -> full lineage string.
+            Kraken2 report format (tab-sep):
+              pct  clade_reads  taxon_reads  rank_code  taxid  name
+            Rank codes: U=unclassified, R=root, D=domain, P=phylum, C=class,
+                        O=order, F=family, G=genus, S=species.
+            Returns dict: taxid (int) -> lineage string e.g.
+              'd__Bacteria; p__Pseudomonadota; c__Gammaproteobacteria'
+            """
+            RANK_PREFIX = {
+                "D": "d__", "K": "k__", "P": "p__", "C": "c__",
+                "O": "o__", "F": "f__", "G": "g__", "S": "s__",
+            }
+            lineages = {}
+            stack = []   # list of (indent_level, rank_prefix, name)
+            try:
+                with open(path) as fh:
+                    for line in fh:
+                        parts = line.rstrip("\n").split("\t")
+                        if len(parts) < 6:
+                            continue
+                        rank  = parts[3].strip()
+                        taxid = int(parts[4].strip())
+                        name  = parts[5].strip()
+                        indent = len(parts[5]) - len(parts[5].lstrip())
+                        level  = indent // 2
+
+                        # Trim stack to current level
+                        stack = [s for s in stack if s[0] < level]
+
+                        prefix = RANK_PREFIX.get(rank[0].upper() if rank else "", None)
+                        if prefix:
+                            stack.append((level, prefix + name, rank))
+                            lineages[taxid] = "; ".join(s[1] for s in stack if s[1])
+                        elif rank in ("R", "R1", "R2"):
+                            pass  # skip root levels
+                        else:
+                            # sub-rank (e.g. S1, C1) — no prefix, still in tree
+                            stack.append((level, None, rank))
+            except Exception:
+                pass
+            return lineages
+
+        def parse_kraken_out(path, lineage_lookup=None):
+            """Return dict contig_id -> lineage string (or taxid if no lookup)."""
             result = {}
             try:
                 df = pd.read_csv(
@@ -148,7 +203,12 @@ rule build_contig_master_table:
                     usecols=[0, 1, 2]
                 )
                 for _, row in df.iterrows():
-                    result[str(row["seq_id"])] = (row["status"], int(row["taxid"]))
+                    taxid = int(row["taxid"])
+                    if row["status"] == "C" and lineage_lookup:
+                        result[str(row["seq_id"])] = lineage_lookup.get(taxid, f"taxid:{taxid}")
+                    elif row["status"] == "C":
+                        result[str(row["seq_id"])] = f"taxid:{taxid}"
+                    # unclassified → leave absent (will map to empty string)
             except Exception:
                 pass
             return result
@@ -238,9 +298,12 @@ rule build_contig_master_table:
         isescan_by_sid = {
             os.path.basename(p).replace("_mge.tsv", ""): p for p in input.isescan
         }
-        k2_raw_by_sid  = {_sid_from(p, "/", "_kraken.out"): p for p in input.k2_raw}
-        k2_2kb_by_sid  = {_sid_from(p, "/", "_kraken.out"): p for p in input.k2_2kb}
-        k2_10kb_by_sid = {_sid_from(p, "/", "_kraken.out"): p for p in input.k2_10kb}
+        k2_raw_by_sid        = {_sid_from(p, "/", "_kraken.out"):    p for p in input.k2_raw}
+        k2_raw_rep_by_sid    = {_sid_from(p, "/", "_kraken.report"): p for p in input.k2_raw_report}
+        k2_2kb_by_sid        = {_sid_from(p, "/", "_kraken.out"):    p for p in input.k2_2kb}
+        k2_2kb_rep_by_sid    = {_sid_from(p, "/", "_kraken.report"): p for p in input.k2_2kb_report}
+        k2_10kb_by_sid       = {_sid_from(p, "/", "_kraken.out"):    p for p in input.k2_10kb}
+        k2_10kb_rep_by_sid   = {_sid_from(p, "/", "_kraken.report"): p for p in input.k2_10kb_report}
         singlem_by_sid = {
             _sid_from(p, "/", "_singlem_contigs_otu.csv"): p for p in input.singlem_contigs
         }
@@ -318,10 +381,13 @@ rule build_contig_master_table:
             is_path = isescan_by_sid.get(sid)
             is_dict = parse_isescan(is_path) if is_path else {}
 
-            # ── Kraken2 taxonomy at three cutoffs ────────────────────────────
-            k2r  = parse_kraken_out(k2_raw_by_sid.get(sid, ""))
-            k2_2 = parse_kraken_out(k2_2kb_by_sid.get(sid, ""))
-            k2_10= parse_kraken_out(k2_10kb_by_sid.get(sid, ""))
+            # ── Kraken2 taxonomy at three cutoffs (with lineage translation) ─
+            lin_raw = parse_kraken_report_lineages(k2_raw_rep_by_sid.get(sid, ""))
+            lin_2kb = parse_kraken_report_lineages(k2_2kb_rep_by_sid.get(sid, ""))
+            lin_10kb= parse_kraken_report_lineages(k2_10kb_rep_by_sid.get(sid, ""))
+            k2r  = parse_kraken_out(k2_raw_by_sid.get(sid,   ""), lin_raw)
+            k2_2 = parse_kraken_out(k2_2kb_by_sid.get(sid,   ""), lin_2kb)
+            k2_10= parse_kraken_out(k2_10kb_by_sid.get(sid,  ""), lin_10kb)
 
             # ── Join everything onto the RGI table ───────────────────────────
             def _join_col(contig_id, d, key, default=np.nan):
@@ -339,12 +405,10 @@ rule build_contig_master_table:
 
             rgi_out["IS_element_families"]     = rgi_out["contig_id"].map(lambda c: is_dict.get(c, ""))
 
-            rgi_out["kraken_status_raw"]  = rgi_out["contig_id"].map(lambda c: k2r.get(c, ("U", 0))[0])
-            rgi_out["kraken_taxid_raw"]   = rgi_out["contig_id"].map(lambda c: k2r.get(c, ("U", 0))[1])
-            rgi_out["kraken_status_2kb"]  = rgi_out["contig_id"].map(lambda c: k2_2.get(c, ("U", 0))[0])
-            rgi_out["kraken_taxid_2kb"]   = rgi_out["contig_id"].map(lambda c: k2_2.get(c, ("U", 0))[1])
-            rgi_out["kraken_status_10kb"] = rgi_out["contig_id"].map(lambda c: k2_10.get(c, ("U", 0))[0])
-            rgi_out["kraken_taxid_10kb"]  = rgi_out["contig_id"].map(lambda c: k2_10.get(c, ("U", 0))[1])
+            # Lineage strings for classified contigs; empty for unclassified
+            rgi_out["kraken_lineage_raw"]   = rgi_out["contig_id"].map(lambda c: k2r.get(c,  ""))
+            rgi_out["kraken_lineage_2kb"]   = rgi_out["contig_id"].map(lambda c: k2_2.get(c, ""))
+            rgi_out["kraken_lineage_10kb"]  = rgi_out["contig_id"].map(lambda c: k2_10.get(c,""))
 
             # ── SingleM contig taxonomy (marker-gene-based) ───────────────────
             sm_path = singlem_by_sid.get(sid)
@@ -421,7 +485,7 @@ rule coselection_analysis:
                 "metal_resistance_gene", "metal_class", "metal_pct_identity",
                 "genomad_classification", "genomad_plasmid_score", "genomad_virus_score",
                 "IS_element_families",
-                "kraken_taxid_raw", "kraken_taxid_2kb", "kraken_taxid_10kb",
+                "kraken_lineage_raw", "kraken_lineage_2kb", "kraken_lineage_10kb",
                 "n_args_on_contig", "n_metal_genes_on_contig"
             ]
             pair_cols = [c for c in pair_cols if c in co.columns]
@@ -496,8 +560,8 @@ rule coselection_analysis:
                         "genomad_classification",
                         lambda x: (x == "Virus").mean()
                     ),
-                    top_kraken_taxid_raw=(
-                        "kraken_taxid_raw",
+                    top_kraken_lineage_raw=(
+                        "kraken_lineage_raw",
                         lambda x: x.value_counts().index[0] if len(x) > 0 else np.nan
                     ),
                 )
