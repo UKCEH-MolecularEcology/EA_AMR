@@ -562,7 +562,7 @@ rule coselection_analysis:
                     ),
                     top_kraken_lineage_raw=(
                         "kraken_lineage_raw",
-                        lambda x: x.value_counts().index[0] if len(x) > 0 else np.nan
+                        lambda x: x.value_counts().index[0] if len(x.value_counts()) > 0 else np.nan
                     ),
                 )
                 .reset_index()
