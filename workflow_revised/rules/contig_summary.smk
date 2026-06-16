@@ -318,7 +318,7 @@ rule build_contig_master_table:
             if not rgi_path:
                 continue
             try:
-                rgi = pd.read_csv(rgi_path, sep="\t")
+                rgi = pd.read_csv(rgi_path, sep="\t", low_memory=False)
             except Exception:
                 continue
 
