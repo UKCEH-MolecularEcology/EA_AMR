@@ -329,9 +329,9 @@ rule build_contig_master_table:
             arg_counts = rgi.groupby("contig_id")["Best_Hit_ARO"].transform("count")
             rgi["n_args_on_contig"] = arg_counts
 
-            # Normalised abundance
-            rgi["ARG_normalized_abundance"] = rgi.apply(
-                lambda r: norm_lookup.get((sid, r["contig_id"]), np.nan), axis=1
+            # Normalised abundance — vectorized lookup via map on (sample,contig) key
+            rgi["ARG_normalized_abundance"] = rgi["contig_id"].map(
+                lambda c: norm_lookup.get((sid, c), np.nan)
             )
 
             # Select and rename RGI columns
@@ -417,17 +417,19 @@ rule build_contig_master_table:
                 lambda c: sm_dict.get(c, "")
             )
 
-            # ── Best available taxonomy (priority: SingleM > Kraken2 raw > 2kb > 10kb)
-            def _best_tax(row):
-                for col in ["singlem_contig_taxonomy",
-                            "kraken_lineage_raw",
-                            "kraken_lineage_2kb",
-                            "kraken_lineage_10kb"]:
-                    val = str(row.get(col, "")).strip()
-                    if val and val not in ("nan", "None", ""):
-                        return val
-                return ""
-            rgi_out["best_taxonomy"] = rgi_out.apply(_best_tax, axis=1)
+            # ── Best available taxonomy — vectorized fillna chain
+            # Priority: SingleM (marker gene) > Kraken2 raw > 2kb > 10kb
+            def _nonempty(s):
+                """Replace empty strings and NaN with NaN for fillna chaining."""
+                return s.replace("", np.nan).replace("nan", np.nan).replace("None", np.nan)
+
+            rgi_out["best_taxonomy"] = (
+                _nonempty(rgi_out["singlem_contig_taxonomy"])
+                .fillna(_nonempty(rgi_out["kraken_lineage_raw"]))
+                .fillna(_nonempty(rgi_out["kraken_lineage_2kb"]))
+                .fillna(_nonempty(rgi_out["kraken_lineage_10kb"]))
+                .fillna("")
+            )
 
             all_tables.append(rgi_out)
 
