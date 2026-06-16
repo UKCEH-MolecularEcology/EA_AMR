@@ -25,9 +25,9 @@ Purpose: Build an integrated per-contig master table joining:
            coselected,
            genomad_classification, genomad_plasmid_score, genomad_virus_score,
            IS_element_families,
-           kraken_lineage_raw (taxonomy at unfiltered contig cutoff),
-           kraken_lineage_2kb (taxonomy at >=2kb cutoff),
-           kraken_lineage_10kb (taxonomy at >=10kb cutoff)
+           singlem_contig_taxonomy (marker-gene GTDB taxonomy where available),
+           kraken_lineage_raw / _2kb / _10kb (k-mer taxonomy at each cutoff),
+           best_taxonomy (first non-empty of: SingleM > Kraken2 raw > 2kb > 10kb)
 """
 
 
@@ -413,10 +413,21 @@ rule build_contig_master_table:
             # ── SingleM contig taxonomy (marker-gene-based) ───────────────────
             sm_path = singlem_by_sid.get(sid)
             sm_dict = parse_singlem_contigs_extras(sm_path) if sm_path else {}
-            # Empty string for contigs with no marker gene hit (expected for most)
             rgi_out["singlem_contig_taxonomy"] = rgi_out["contig_id"].map(
                 lambda c: sm_dict.get(c, "")
             )
+
+            # ── Best available taxonomy (priority: SingleM > Kraken2 raw > 2kb > 10kb)
+            def _best_tax(row):
+                for col in ["singlem_contig_taxonomy",
+                            "kraken_lineage_raw",
+                            "kraken_lineage_2kb",
+                            "kraken_lineage_10kb"]:
+                    val = str(row.get(col, "")).strip()
+                    if val and val not in ("nan", "None", ""):
+                        return val
+                return ""
+            rgi_out["best_taxonomy"] = rgi_out.apply(_best_tax, axis=1)
 
             all_tables.append(rgi_out)
 
@@ -485,6 +496,8 @@ rule coselection_analysis:
                 "metal_resistance_gene", "metal_class", "metal_pct_identity",
                 "genomad_classification", "genomad_plasmid_score", "genomad_virus_score",
                 "IS_element_families",
+                "best_taxonomy",
+                "singlem_contig_taxonomy",
                 "kraken_lineage_raw", "kraken_lineage_2kb", "kraken_lineage_10kb",
                 "n_args_on_contig", "n_metal_genes_on_contig"
             ]
@@ -560,9 +573,10 @@ rule coselection_analysis:
                         "genomad_classification",
                         lambda x: (x == "Virus").mean()
                     ),
-                    top_kraken_lineage_raw=(
-                        "kraken_lineage_raw",
-                        lambda x: x.value_counts().index[0] if len(x.value_counts()) > 0 else np.nan
+                    top_taxonomy=(
+                        "best_taxonomy",
+                        lambda x: x[x.str.len() > 0].value_counts().index[0]
+                            if len(x[x.str.len() > 0].value_counts()) > 0 else np.nan
                     ),
                 )
                 .reset_index()
