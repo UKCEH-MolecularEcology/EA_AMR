@@ -1,0 +1,8 @@
+name: isescan
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - isescan
+  - python=3.8

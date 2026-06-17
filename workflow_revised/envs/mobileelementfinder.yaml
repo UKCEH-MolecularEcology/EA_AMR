@@ -1,0 +1,12 @@
+name: mobileelementfinder
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.9
+  - blast
+  - biopython=1.79
+  - pip
+  - pip:
+    - mobileelementfinder==1.1.2
