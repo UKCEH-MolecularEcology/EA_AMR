@@ -253,10 +253,10 @@ rule build_contig_master_table:
 
         def parse_singlem_contigs_extras(path):
             """Return dict contig_id -> SingleM taxonomy string.
-            Reads the --output-extras OTU table; the read_names column contains
-            space-separated Prodigal ORF IDs ({contig}_{orf_number}). Strip the
-            trailing _{N} to get the contig name. Where multiple marker genes
-            hit the same contig, keep the most specific (longest) taxonomy string.
+            In genome mode (-f), read_names contains contig IDs directly
+            (e.g. 'k87_1585190'), NOT Prodigal ORF names with _N suffixes.
+            Use the name as-is. Multiple marker genes on the same contig
+            → keep the most specific (longest) taxonomy string.
             """
             result = {}
             try:
@@ -265,8 +265,7 @@ rule build_contig_master_table:
                     return result
                 for _, row in df.iterrows():
                     taxonomy = str(row["taxonomy"])
-                    for orf in str(row["read_names"]).split():
-                        contig_id = orf.rsplit("_", 1)[0]
+                    for contig_id in str(row["read_names"]).split():
                         if contig_id not in result or len(taxonomy) > len(result[contig_id]):
                             result[contig_id] = taxonomy
             except Exception:
