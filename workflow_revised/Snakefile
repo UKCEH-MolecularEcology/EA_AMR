@@ -100,16 +100,6 @@ if "taxonomy_validation" in STEPS:
     include: "rules/taxonomy_validation.smk"
     TARGETS += ["status/taxonomy_validation.done"]
 
-# Reviewer 1 #3 + Reviewer 2 #3: MAG generation, QC, dereplication, taxonomy
-if "binning" in STEPS:
-    include: "rules/binning.smk"
-    TARGETS += ["status/binning.done"]
-
-# Reviewer 1 #3 + Reviewer 2 #3: CARD-RGI on dereplicated MAGs
-if "bin_amr" in STEPS:
-    include: "rules/bin_amr.smk"
-    TARGETS += ["status/bin_amr.done"]
-
 # Reviewer 1 #6: ISEScan MGEs + BacMet2 metal resistance + co-occurrence
 if "mge_metal" in STEPS:
     include: "rules/mge_metal.smk"
