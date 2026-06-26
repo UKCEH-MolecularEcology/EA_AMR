@@ -35,7 +35,6 @@ The pipeline produces:
 - Taxonomy validation: Spearman correlations across Kraken2, SingleM (reads + contigs), and Sylph
 - Contig mobility classification (geNomad: chromosome / plasmid / virus)
 - Metal resistance gene annotation (BacMet2) and ARG–metal co-selection analysis
-- MAG generation, quality control, and ARG profiling (MetaBAT2 → CheckM2 → GTDB-Tk)
 - An integrated per-contig master table joining all of the above
 
 ---
@@ -124,8 +123,6 @@ Enable steps by adding their names to `steps` in `config/config.yaml`.
 | `taxonomy_validation` | `taxonomy_validation.smk` | R2 #4 | Spearman correlations at phylum/class/genus across 7 methods: Kraken2 reads (c=0.2/0.5/0.7), Kraken2 contigs (unfiltered/2kb/10kb), SingleM reads, SingleM contigs, Sylph |
 | `genomad` | `genomad.smk` | R1 #2, R1 #3 | geNomad contig classification: chromosome / plasmid / virus |
 | `mge_metal` | `mge_metal.smk` | R1 #6 | ISEScan insertion sequences; BacMet2 metal resistance genes (DIAMOND); ARG+MGE co-occurrence using geNomad + ISEScan |
-| `binning` | `binning.smk` | R1 #3, R2 #3 | MetaBAT2 binning; CheckM2 QC (≥50% completeness, ≤10% contamination); dRep dereplication; GTDB-Tk taxonomy |
-| `bin_amr` | `bin_amr.smk` | R1 #3, R2 #3 | CARD-RGI on dereplicated MAGs; merged with GTDB-Tk taxonomy; ARG-per-phylum summary |
 | `contig_summary` | `contig_summary.smk` | All | Integrated per-contig master table + ARG–metal co-selection analysis |
 
 ### Step dependency order
@@ -152,7 +149,6 @@ sample_amr (RGI + fetchMG) ─────────────────�
 bracken_reads ──────────────────────────────────────────────────────────────────► taxonomy_validation
 bracken_highconf (c=0.5, c=0.7) ────────────────────────────────────────────────► taxonomy_validation
                                                                            contig_summary ◄─┘
-binning ──► bin_amr
 ```
 
 Snakemake resolves all dependencies automatically — list all desired steps in `config.yaml`
@@ -286,19 +282,6 @@ All outputs are written to `results_dir` (default: `/prj/DECODE/EA_AMR/RGI_resul
 | `contig_summary/coselection/coselection_by_classification.tsv` | Fisher's exact test: co-selection enrichment on plasmids/viruses vs chromosomes |
 | `contig_summary/coselection/coselection_statistics.tsv` | ARG family × metal class pair frequencies, mean abundances, mobility fractions, top taxa |
 
-### MAGs
-
-| Path | Description |
-|---|---|
-| `bins/{sid}/` | MetaBAT2 bins per sample |
-| `checkm/{sid}/quality_report.tsv` | CheckM2 completeness/contamination per bin |
-| `bins_hq/` | High-quality bins (completeness ≥50%, contamination ≤10%) |
-| `drep/dereplicated_genomes/` | Dereplicated MAGs (dRep) |
-| `gtdbtk/classify/gtdbtk.bac120.summary.tsv` | GTDB-Tk taxonomy for all MAGs |
-| `bin_amr/combined_bin_rgi.tsv` | RGI on all MAGs combined |
-| `bin_amr/bin_rgi_with_taxonomy.tsv` | MAG ARGs joined with GTDB taxonomy |
-| `bin_amr/arg_per_phylum_summary.tsv` | ARG family counts per GTDB phylum |
-
 ### Organellar filtering
 
 | Path | Description |
@@ -316,7 +299,6 @@ This workflow was extended in response to reviewers at *Nature Communications*:
 |---|---|
 | R2 #4: Kraken2 accuracy / contig size cutoff | `contig_size_filter.smk` (≥2 kb, ≥10 kb); `bracken_reads.smk` (Kraken2 reruns at c=0.5, c=0.7); `taxonomy_validation.smk` (multi-method Spearman comparison at phylum/class/genus) |
 | R2 #5: Chloroplast/mitochondria contamination | `organellar_filter.smk` (BBDuk against NCBI RefSeq plastid + mitochondrion) |
-| R1 #2, R1 #3 + R2 #3: MAG-based ARG analysis | `binning.smk` (MetaBAT2 → CheckM2 → dRep → GTDB-Tk); `bin_amr.smk` (RGI on MAGs) |
 | R1 #3 + R2 #3: Contig mobility | `genomad.smk` (geNomad chromosome/plasmid/virus classification) |
 | R1 #6: Metal resistance co-occurrence | `mge_metal.smk` (BacMet2 + ISEScan + geNomad MGE co-occurrence) |
 | All: Integrated summary | `contig_summary.smk` (master table + co-selection statistics) |
@@ -340,12 +322,6 @@ If using this workflow, please cite the following tools:
 - MEGAHIT: Li et al., *Bioinformatics* (2015). https://doi.org/10.1093/bioinformatics/btv033
 - Prodigal: Hyatt et al., *BMC Bioinformatics* (2010). https://doi.org/10.1186/1471-2105-11-119
 - fetchMG: Sunagawa et al., *Nature* (2013). https://doi.org/10.1038/nature12229
-
-**MAG analysis**
-- MetaBAT2: Kang et al., *PeerJ* (2019). https://doi.org/10.7717/peerj.7359
-- CheckM2: Chklovski et al., *Nature Methods* (2023). https://doi.org/10.1038/s41592-023-01940-w
-- dRep: Olm et al., *ISME Journal* (2017). https://doi.org/10.1038/ismej.2017.126
-- GTDB-Tk: Chaumeil et al., *Bioinformatics* (2022). https://doi.org/10.1093/bioinformatics/btac672
 
 **Mobile elements and metal resistance**
 - geNomad: Camargo et al., *Nature Biotechnology* (2023). https://doi.org/10.1038/s41587-023-01953-y
